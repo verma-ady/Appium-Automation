@@ -1,15 +1,17 @@
 package com.appium.calculator;
 
-import static org.junit.Assert.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
+import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import jxl.Cell;
 import jxl.Sheet;
@@ -22,10 +24,18 @@ import jxl.write.WriteException;
 import jxl.write.biff.RowsExceededException;
 
 public class Calculator {
-
-	@Test
-	public void test() throws BiffException, IOException, RowsExceededException, WriteException, InterruptedException {
-		DesiredCapabilities desiredCapabilities = new DesiredCapabilities();
+	DesiredCapabilities desiredCapabilities;
+	AndroidDriver driver;
+	Workbook workbook;
+	Sheet sheet;
+	WritableWorkbook writeBookA;
+	WritableSheet sheetA;
+	String num1, num2, op;
+	int i, index;
+	
+	@Before
+	public void read() throws BiffException, IOException, RowsExceededException, WriteException, InterruptedException{
+		desiredCapabilities = new DesiredCapabilities();
 		desiredCapabilities.setCapability("automationName", "Appium");
 		//desiredCapabilities.setCapability("automationName", "Selendroid");
 		desiredCapabilities.setCapability("platformName", "Android");
@@ -33,58 +43,83 @@ public class Calculator {
 		desiredCapabilities.setCapability("platformVersion", "6.0");
 		desiredCapabilities.setCapability("deviceName", "Android Emulator");
 		
-		desiredCapabilities.setCapability("app", "D:\\Aditya\\Android\\Calculator\\app\\build\\outputs\\apk\\app-debug.apk");
-		desiredCapabilities.setCapability("appPackage", "com.calculator");
-		desiredCapabilities.setCapability("appActivity", "Launch");
+		desiredCapabilities.setCapability("appPackage", "com.android.calculator2");
+		desiredCapabilities.setCapability("appActivity", "Calculator");
 		desiredCapabilities.setCapability("noReset","true");
 		desiredCapabilities.setCapability("fullReset","false");
-		AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723/wd/hub"),desiredCapabilities);
+		driver = new AndroidDriver(new URL("http://127.0.0.1:4723/wd/hub"),desiredCapabilities);
 		
 		driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
 		
-		Workbook workbook = Workbook.getWorkbook(new File("calc.xls"));
-		Sheet sheet = workbook.getSheet(0);
-		WritableWorkbook writeBook = Workbook.createWorkbook(new File("calc.xls"), workbook);
-		WritableSheet sheet1 = writeBook.getSheet(0); 
+		workbook = Workbook.getWorkbook(new File("calc.xls"));
+		sheet = workbook.getSheet(0);
+		writeBookA = Workbook.createWorkbook(new File("calcAns.xls"));
+		sheetA = writeBookA.createSheet("First Sheet", 0);
+	}
+	
+	@Test
+	public void test() throws BiffException, IOException, RowsExceededException, WriteException, InterruptedException {
+		for(i=0; i<sheet.getRows(); i++ ){
+			Cell n1 = sheet.getCell(0,i); 
+			Cell n2 = sheet.getCell(1,i);//(col,row)
+			Cell oprtn = sheet.getCell(2,i);
+			num1 = n1.getContents();
+			num2 = n2.getContents();
+			op = oprtn.getContents();
 		
-		for(int i=0; i<sheet1.getRows() ; i++ ){
-			Cell num1 = sheet.getCell(0,i); 
-			Cell num2 = sheet.getCell(1,i);//(col,row)
-			Cell op = sheet.getCell(2,i);
-			driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/num1\")")
-			.sendKeys(num1.getContents());
-			driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/num2\")")
-			.sendKeys(num2.getContents());
+			for(index=0; index<num1.length() ; index++ ){
+				String digit = "com.android.calculator2:id/digit_" + num1.charAt(index);
+				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\""+ digit +"\")").click();
+			}
 			
-			driver.navigate().back();
-			if(op.getContents().equals("1")){
-				System.out.println(op.getContents());
-				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/add\")").click();
-			} else if(op.getContents().equals("2")){
-				System.out.println(op.getContents());
-				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/sub\")").click();
-			} else if(op.getContents().equals("3")){
-				System.out.println(op.getContents());
-				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/mul\")").click();
-			} else if(op.getContents().equals("4")){
-				System.out.println(op.getContents());
-				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/div\")").click();;
+			if(op.equals("1")){
+				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.android.calculator2:id/op_add\")").click();
+			} else if(op.equals("2")){
+				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.android.calculator2:id/op_sub\")").click();
+			} else if(op.equals("3")){
+				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.android.calculator2:id/op_mul\")").click();
+			} else if(op.equals("4")){
+				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.android.calculator2:id/op_div\")").click();;
 			}
-			String ans = driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/ans\")").getText(); 
-			Label label = new Label(3, i, ans);
-			sheet1.addCell(label);
-			if(!ans.contains("^[0-9]*$")){
-				fail(ans);
+			
+			for(index=0; index<num2.length() ; index++ ){
+				String digit = "com.android.calculator2:id/digit_" + num2.charAt(index);
+				driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\""+ digit +"\")").click();
 			}
-			//Thread.sleep(2000);
-			driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/num1\")")
-			.sendKeys("");
-			driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.calculator:id/num2\")")
-			.sendKeys("");
+			
+			String ans = driver.findElementByAndroidUIAutomator("new UiSelector().resourceId(\"com.android.calculator2:id/result\")").getText(); 
+			
+			//System.out.println("Success" + num1 +" " +num2 +" " +op+" " +ans);
+			Label labelN1 = new Label(0, i, num1);
+			sheetA.addCell(labelN1);
+			Label labelN2 = new Label(1, i, num2);
+			sheetA.addCell(labelN2);
+			Label labelOp = new Label(2, i, op);
+			sheetA.addCell(labelOp);
+			Label labelAns = new Label(3, i, ans);
+			sheetA.addCell(labelAns);
+			
+			WebElement del = driver.findElementById("com.android.calculator2:id/del");
+			TouchAction action = new TouchAction(driver);
+			action.longPress(del).release().perform();
+			
 		}
-		writeBook.write(); 
-		writeBook.close();
+	}
+	
+	@After
+	public void output() throws IOException, WriteException{
+		writeBookA.write(); 
+		writeBookA.close();
 		workbook.close();
 	}
 
+	public boolean checkString(String a){
+		
+		for(int i=0 ;i<a.length() ; i++ ){
+			if(Character.isAlphabetic(a.charAt(i))){
+				return false;
+			}
+		}
+		return true;
+	}
 }
